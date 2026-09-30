@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "dailyalignment",
+  "name": "daily-alignment",
   "compatibility_date": "2026-09-30",
   "workers_dev": true,
   "preview_urls": true,
@@ -8,4 +8,6 @@
     "directory": "./public",
     "not_found_handling": "single-page-application"
   }
+  // To use your own domain instead, add:
+  // "routes": [{ "pattern": "yourdomain.com", "custom_domain": true }]
 }
