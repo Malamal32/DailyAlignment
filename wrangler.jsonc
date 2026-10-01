@@ -16,7 +16,7 @@
       "binding": "DB",
       "database_name": "dailyalignment",
       // Paste the id from Storage & databases → D1 (or: npx wrangler d1 create dailyalignment)
-      "database_id": "PASTE-YOUR-DATABASE-ID-HERE"
+      "database_id": "415dd814-71d7-46b4-8272-3cc8e1f45455"
     }
   ],
   // Cloudflare Email Service sends the sign-in codes
