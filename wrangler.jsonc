@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "compatibility_date": "2026-09-30",
   "workers_dev": true,
-  "preview_urls": true,
+  "preview_urls": false,
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
@@ -15,15 +15,15 @@
     {
       "binding": "DB",
       "database_name": "dailyalignment",
-      // Paste the id from Storage & databases → D1 (or: npx wrangler d1 create dailyalignment)
-      "database_id": "415dd814-71d7-46b4-8272-3cc8e1f45455"
+      // Paste the id from Storage & databases → D1
+      "database_id": "PASTE-YOUR-DATABASE-ID-HERE"
     }
   ],
-  // Cloudflare Email Service sends the sign-in codes
-  "send_email": [{ "name": "EMAIL" }],
+  // Sign-in is handled by Cloudflare Access (Zero Trust).
   "vars": {
-    "APP_NAME": "DailyAlignment",
-    // Must be an address on a domain you've set up for email in Cloudflare
-    "MAIL_FROM": "login@yourdomain.com"
+    // Your Zero Trust team domain, e.g. "yourteam.cloudflareaccess.com"
+    "TEAM_DOMAIN": "",
+    // The Application Audience (AUD) tag of this app's Access application
+    "POLICY_AUD": ""
   }
 }

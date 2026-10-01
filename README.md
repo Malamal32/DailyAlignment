@@ -17,10 +17,10 @@ Astrology mood and energy journal. A Cloudflare Worker serves the app and handle
 If you already created it, paste the same ID again.
 
 ### 2. Email for sign-in codes
-You need a domain on Cloudflare. If your other app already sends codes this way, reuse the same domain and sender.
+You need a domain on Cloudflare. To keep this app fully separate from anything else on that domain, send from a subdomain such as `mail.yourdomain.com`.
 
-1. In the dashboard, go to **Compute → Email Service → Email Sending → Onboard Domain** and pick your domain. Cloudflare adds the DNS records.
-2. In `wrangler.jsonc`, set `MAIL_FROM` to an address on that domain, such as `login@yourdomain.com`.
+1. In the dashboard, go to **Compute → Email Service → Email Sending → Onboard Domain** and choose the subdomain. Cloudflare adds DNS records for that subdomain only.
+2. In `wrangler.jsonc`, set `MAIL_FROM` to an address on it, such as `login@mail.yourdomain.com`.
 3. **Free plan:** Cloudflare can only send to addresses you've verified. Add your own email under **Email Routing → Destination addresses** and click the link Cloudflare emails you. That's enough when you're the only person signing in.
 4. **To let anyone sign in**, either upgrade to Workers Paid or use Resend's free tier. For Resend, verify your domain there, run `npx wrangler secret put RESEND_API_KEY` (or add it under Settings → Variables and secrets), and remove the `send_email` block from `wrangler.jsonc`. The Worker uses Resend whenever the Cloudflare binding isn't present.
 
