@@ -16,23 +16,24 @@ let ready = null; // tables are created on first use, once per Worker instance
 const ensure = env => ready || (ready = env.DB.batch(SCHEMA.map(q => env.DB.prepare(q))).catch(e => { ready = null; throw e; }));
 
 let jwks = null, jwksAt = 0;
-async function accessEmail(req, env) {
+async function accessEmail(req, env, info = {}) {
   const cookie = (req.headers.get('cookie') || '').match(/(?:^|;\s*)CF_Authorization=([^;]+)/);
   const tok = req.headers.get('cf-access-jwt-assertion') || (cookie && cookie[1]);
-  if (!tok) return null;
+  if (!tok) { info.reason = 'No Cloudflare Access token on this request. Access is not protecting this URL.'; return null; }
   // Without TEAM_DOMAIN and POLICY_AUD set, fall back to the header Access adds.
   if (!env.TEAM_DOMAIN || !env.POLICY_AUD) return (req.headers.get('cf-access-authenticated-user-email') || '').toLowerCase() || null;
-  const [h, p, s] = tok.split('.'); if (!s) return null;
-  let header, payload; try { header = JSON.parse(b64urlText(h)); payload = JSON.parse(b64urlText(p)); } catch (e) { return null; }
+  const [h, p, s] = tok.split('.'); if (!s) { info.reason = 'Access token is malformed.'; return null; }
+  let header, payload; try { header = JSON.parse(b64urlText(h)); payload = JSON.parse(b64urlText(p)); } catch (e) { info.reason = 'Access token could not be read.'; return null; }
   if (!jwks || Date.now() - jwksAt > 3600e3) {
     const team = String(env.TEAM_DOMAIN).replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     jwks = (await (await fetch(`https://${team}/cdn-cgi/access/certs`)).json()).keys || []; jwksAt = Date.now();
   }
-  const jwk = jwks.find(k => k.kid === header.kid); if (!jwk) { jwks = null; return null; }
+  const jwk = jwks.find(k => k.kid === header.kid); if (!jwk) { jwks = null; info.reason = 'Signing key not found. Check TEAM_DOMAIN in wrangler.jsonc.'; return null; }
   const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
-  if (!(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlBytes(s), enc.encode(h + '.' + p)))) return null;
+  if (!(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, b64urlBytes(s), enc.encode(h + '.' + p)))) { info.reason = 'Access token signature did not verify.'; return null; }
   const aud = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-  if (!aud.includes(env.POLICY_AUD) || (payload.exp && payload.exp * 1000 < Date.now())) return null;
+  if (!aud.includes(env.POLICY_AUD)) { info.reason = 'POLICY_AUD in wrangler.jsonc does not match this Access app. Paste the AUD tag again with the copy button.'; return null; }
+  if (payload.exp && payload.exp * 1000 < Date.now()) { info.reason = 'Access sign-in expired.'; return null; }
   return String(payload.email || '').toLowerCase() || null;
 }
 async function userId(env, email) {
@@ -46,12 +47,26 @@ export default {
   async fetch(req, env) {
     const url = new URL(req.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(req);
+    if (url.pathname === '/api/status' && req.method === 'GET') {
+      const info = {}, out = { worker: 'running', database: env.DB ? 'bound' : 'MISSING: database_id is not set in wrangler.jsonc', teamDomain: env.TEAM_DOMAIN || '(empty)', audTag: env.POLICY_AUD ? 'set' : '(empty)', signedInAs: null };
+      try {
+        const email = await accessEmail(req, env, info);
+        out.signedInAs = email || ('NOT VERIFIED: ' + (info.reason || 'unknown'));
+        if (env.DB && email) {
+          await ensure(env);
+          const uid = await userId(env, email);
+          const c = await env.DB.prepare("SELECT COUNT(*) AS n, MAX(updated) AS last FROM days WHERE user_id = ? AND data != ''").bind(uid).first();
+          out.database = 'connected'; out.daysSaved = c.n; out.lastChange = c.last ? new Date(c.last).toISOString() : null;
+        }
+      } catch (e) { out.error = e.message; }
+      return json(out);
+    }
     if (req.method !== 'POST') return json({ error: 'Use POST.' }, 405);
     if (!env.DB) return json({ error: 'The database is not set up yet.' }, 500);
     let body = {}; try { body = await req.json(); } catch (e) {}
     try {
-      const email = await accessEmail(req, env);
-      if (!email) return json({ error: 'Cloudflare Access is not on for this app yet.' }, 401);
+      const info = {}, email = await accessEmail(req, env, info);
+      if (!email) return json({ error: info.reason || 'Cloudflare Access is not on for this app yet.' }, 401);
       await ensure(env);
       const uid = await userId(env, email), now = Date.now();
 
