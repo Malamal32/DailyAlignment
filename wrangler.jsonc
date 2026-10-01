@@ -24,6 +24,6 @@
     // Your Zero Trust team domain, e.g. "yourteam.cloudflareaccess.com"
     "TEAM_DOMAIN": "shrill-wood-d821.cloudflareaccess.com",
     // The Application Audience (AUD) tag of this app's Access application
-    "POLICY_AUD": "26d8b24a-9ab5-4518-8d42-64828443847a"
+    "POLICY_AUD": "be6e7b7f-388c-4bd3-b537-2f520648f734"
   }
 }
