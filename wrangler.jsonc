@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "daily-alignment",
+  "name": "dailyalignment",
   "main": "src/index.js",
   "compatibility_date": "2026-09-30",
   "workers_dev": true,
