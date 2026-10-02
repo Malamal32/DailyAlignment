@@ -25,5 +25,7 @@
     "TEAM_DOMAIN": "shrill-wood-d821.cloudflareaccess.com",
     // The Application Audience (AUD) tag of this app's Access application
     "POLICY_AUD": "1a41820d17691259628ad69ed1da5cf2a8242f23df0e31b0f83d7b0093dfdf03"
+    // Who can open Me → Members. Comma-separated. Left empty, the earliest member is the admin.
+    "ADMIN_EMAILS": ""
   }
 }
